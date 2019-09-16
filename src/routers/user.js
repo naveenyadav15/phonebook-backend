@@ -1,12 +1,45 @@
 const express = require('express');
 const Users = require('../models/user');
+const Groups = require('../models/group');
 
 const router = express.Router();
 
 // Add user in phonebook
 router.post('/users', async (req, res) => {
-    const user = new Users(req.body);
+    const name = req.body.name;
+    const phoneNo = req.body.phoneNo;
+    const user = new Users({
+        name,
+        phoneNo
+    });
     try {
+        // console.log(req.body);
+        // console.log(user);
+        // console.log(user._id);
+        if (req.body.groupId) {
+
+            const group = await Groups.find({
+                _id: req.body.groupId
+            });
+            if (!group) {
+                return res.status(404).send({
+                    "error": "No group Found!"
+                });
+            }
+            group[0].groupIds.push({
+                "groupId": user._id
+            });
+
+            const groupSave = await Groups.findByIdAndUpdate(req.body.groupId, group[0], {
+                new: true,
+                runValidators: true
+            });
+            if (!groupSave) {
+                return res.status(500).send({
+                    "error": "Server Error!"
+                });
+            }
+        }
         await user.save();
         res.status(201).send(user);
     } catch (error) {
